@@ -36,7 +36,7 @@ public class SettingsPage extends JPanel {
             // In embedded mode, just hide by switching back to Home from MainAppFrame
             Container c = SwingUtilities.getAncestorOfClass(MainAppFrame.class, this);
             if (c instanceof MainAppFrame) {
-                ((MainAppFrame)c).switchView(MainAppFrame.HOME_VIEW);
+                ((MainAppFrame) c).switchView(MainAppFrame.HOME_VIEW);
             }
         });
 
@@ -50,14 +50,14 @@ public class SettingsPage extends JPanel {
         content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
         content.setBorder(new EmptyBorder(30, 40, 30, 40));
         content.setBackground(AppConfig.DARK_BACKGROUND);
-        
+
         // --- 1. Profile Information Section ---
         JLabel profileHeading = createHeading("Profile Information");
         nameField = createField();
         emailField = createField();
         phoneField = createField();
         addressField = createField();
-        
+
         JButton updateProfileBtn = createThemedButton("Update Profile");
         updateProfileBtn.addActionListener(e -> updateProfile());
 
@@ -72,14 +72,14 @@ public class SettingsPage extends JPanel {
         content.add(createLabeledRow("Address:", addressField));
         content.add(Box.createVerticalStrut(25));
         content.add(updateProfileBtn);
-        
+
         content.add(Box.createVerticalStrut(40));
 
         // --- 2. Change Password Section ---
         JLabel passHeading = createHeading("Change Password");
         oldPassField = createPasswordField();
         newPassField = createPasswordField();
-        
+
         JButton changePassBtn = createThemedButton("Change Password");
         changePassBtn.addActionListener(e -> changePassword());
 
@@ -93,7 +93,7 @@ public class SettingsPage extends JPanel {
 
         return new JScrollPane(content);
     }
-    
+
     // --- Helper UI Methods (for SettingsPage) ---
     private JLabel createHeading(String text) {
         JLabel label = new JLabel(text);
@@ -102,27 +102,27 @@ public class SettingsPage extends JPanel {
         label.setAlignmentX(Component.LEFT_ALIGNMENT);
         return label;
     }
-    
+
     private JTextField createField() {
         JTextField field = new JTextField(30);
-        field.setFont(new Font("Arial", Font.PLAIN, 14));
+        field.setFont(AppConfig.FONT_INPUT);
         field.setBackground(AppConfig.CARD_BACKGROUND);
-        field.setForeground(AppConfig.LIGHT_TEXT);
+        field.setForeground(Color.WHITE);
         field.setBorder(BorderFactory.createLineBorder(AppConfig.BORDER_GRAY, 1));
         field.setMaximumSize(new Dimension(500, 35));
         return field;
     }
-    
+
     private JPasswordField createPasswordField() {
         JPasswordField field = new JPasswordField(30);
-        field.setFont(new Font("Arial", Font.PLAIN, 14));
+        field.setFont(AppConfig.FONT_INPUT);
         field.setBackground(AppConfig.CARD_BACKGROUND);
-        field.setForeground(AppConfig.LIGHT_TEXT);
+        field.setForeground(Color.WHITE);
         field.setBorder(BorderFactory.createLineBorder(AppConfig.BORDER_GRAY, 1));
         field.setMaximumSize(new Dimension(500, 35));
         return field;
     }
-    
+
     private JButton createThemedButton(String text) {
         JButton button = new JButton(text);
         AppConfig.styleFlatButton(button, AppConfig.PRIMARY_RED, Color.WHITE);
@@ -135,7 +135,7 @@ public class SettingsPage extends JPanel {
         JPanel rowPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
         rowPanel.setBackground(AppConfig.DARK_BACKGROUND);
         rowPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
-        
+
         JLabel label = new JLabel(labelText);
         label.setFont(AppConfig.FONT_BOLD);
         label.setForeground(AppConfig.LIGHT_TEXT);
@@ -155,7 +155,8 @@ public class SettingsPage extends JPanel {
 
         try {
             conn = AppConfig.getConnection();
-            if (conn == null) return; 
+            if (conn == null)
+                return;
 
             pst = conn.prepareStatement(query);
             pst.setInt(1, userId);
@@ -168,12 +169,13 @@ public class SettingsPage extends JPanel {
                 addressField.setText(rs.getString("address") != null ? rs.getString("address") : "");
             }
         } catch (SQLException ex) {
-            JOptionPane.showMessageDialog(this, "Error loading profile: " + ex.getMessage(), "DB Error", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Error loading profile: " + ex.getMessage(), "DB Error",
+                    JOptionPane.ERROR_MESSAGE);
         } finally {
             AppConfig.closeResources(conn, pst, rs);
         }
     }
-    
+
     private void updateProfile() {
         String name = nameField.getText();
         String email = emailField.getText();
@@ -186,7 +188,8 @@ public class SettingsPage extends JPanel {
 
         try {
             conn = AppConfig.getConnection();
-            if (conn == null) return; 
+            if (conn == null)
+                return;
 
             pst = conn.prepareStatement(query);
             pst.setString(1, name);
@@ -194,24 +197,28 @@ public class SettingsPage extends JPanel {
             pst.setString(3, phone);
             pst.setString(4, address);
             pst.setInt(5, userId);
-            
+
             pst.executeUpdate();
-            JOptionPane.showMessageDialog(this, "Profile updated successfully!", "Success", JOptionPane.INFORMATION_MESSAGE);
-        } catch(SQLIntegrityConstraintViolationException ex) {
-             JOptionPane.showMessageDialog(this, "Username or Email already exists.", "Update Error", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Profile updated successfully!", "Success",
+                    JOptionPane.INFORMATION_MESSAGE);
+        } catch (SQLIntegrityConstraintViolationException ex) {
+            JOptionPane.showMessageDialog(this, "Username or Email already exists.", "Update Error",
+                    JOptionPane.ERROR_MESSAGE);
         } catch (SQLException ex) {
-            JOptionPane.showMessageDialog(this, "Error updating profile: " + ex.getMessage(), "DB Error", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Error updating profile: " + ex.getMessage(), "DB Error",
+                    JOptionPane.ERROR_MESSAGE);
         } finally {
             AppConfig.closeResources(conn, pst, null);
         }
     }
-    
+
     private void changePassword() {
         String oldPass = new String(oldPassField.getPassword());
         String newPass = new String(newPassField.getPassword());
-        
+
         if (newPass.length() < 6) {
-            JOptionPane.showMessageDialog(this, "New password must be at least 6 characters.", "Validation Error", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "New password must be at least 6 characters.", "Validation Error",
+                    JOptionPane.ERROR_MESSAGE);
             return;
         }
 
@@ -222,7 +229,8 @@ public class SettingsPage extends JPanel {
 
         try {
             conn = AppConfig.getConnection();
-            if (conn == null) return; 
+            if (conn == null)
+                return;
 
             String selectQuery = "SELECT password FROM Users WHERE user_id = ? AND password = ?";
             pstSelect = conn.prepareStatement(selectQuery);
@@ -231,7 +239,8 @@ public class SettingsPage extends JPanel {
             rs = pstSelect.executeQuery();
 
             if (!rs.next()) {
-                JOptionPane.showMessageDialog(this, "Current password incorrect.", "Authentication Error", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(this, "Current password incorrect.", "Authentication Error",
+                        JOptionPane.ERROR_MESSAGE);
                 return;
             }
 
@@ -239,15 +248,22 @@ public class SettingsPage extends JPanel {
             pstUpdate = conn.prepareStatement(updateQuery);
             pstUpdate.setString(1, newPass);
             pstUpdate.setInt(2, userId);
-            
+
             pstUpdate.executeUpdate();
-            JOptionPane.showMessageDialog(this, "Password changed successfully.", "Success", JOptionPane.INFORMATION_MESSAGE);
-            
+            JOptionPane.showMessageDialog(this, "Password changed successfully.", "Success",
+                    JOptionPane.INFORMATION_MESSAGE);
+
         } catch (SQLException ex) {
-            JOptionPane.showMessageDialog(this, "Error changing password: " + ex.getMessage(), "DB Error", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Error changing password: " + ex.getMessage(), "DB Error",
+                    JOptionPane.ERROR_MESSAGE);
         } finally {
             AppConfig.closeResources(conn, pstSelect, rs);
-            if (pstUpdate != null) { try { pstUpdate.close(); } catch (SQLException e) {} }
+            if (pstUpdate != null) {
+                try {
+                    pstUpdate.close();
+                } catch (SQLException e) {
+                }
+            }
         }
     }
 }

@@ -8,28 +8,44 @@ import java.sql.*;
 public class Cart {
 
     private static Map<Integer, Integer> cartItems = new HashMap<>();
-    private static int restaurantId = -1; 
+    private static int restaurantId = -1;
     private static double subTotal = 0.0;
     private static String packagingType = "Standard";
-    
-    public static Map<Integer, Integer> getItems() { return cartItems; }
-    public static double getSubTotal() { return subTotal; }
-    public static String getPackagingType() { return packagingType; }
-    public static int getRestaurantId() { return restaurantId; }
-    
-    public static void setPackagingType(String type) { packagingType = type; }
-    
+
+    public static Map<Integer, Integer> getItems() {
+        return cartItems;
+    }
+
+    public static double getSubTotal() {
+        return subTotal;
+    }
+
+    public static String getPackagingType() {
+        return packagingType;
+    }
+
+    public static int getRestaurantId() {
+        return restaurantId;
+    }
+
+    public static void setPackagingType(String type) {
+        packagingType = type;
+    }
+
     public static boolean addItem(int itemId, double itemPrice, int restId, int quantity) {
         if (restaurantId != -1 && restaurantId != restId) {
-            int confirm = JOptionPane.showConfirmDialog(null, "Clear cart to add from new restaurant?", "Change Restaurant", JOptionPane.YES_NO_OPTION);
-            if (confirm == JOptionPane.YES_OPTION) clear();
-            else return false;
+            int confirm = JOptionPane.showConfirmDialog(null, "Clear cart to add from new restaurant?",
+                    "Change Restaurant", JOptionPane.YES_NO_OPTION);
+            if (confirm == JOptionPane.YES_OPTION)
+                clear();
+            else
+                return false;
         }
 
-        int stock = checkItemStockInDB(itemId);
+        int stock_amount = checkItemStockInDB(itemId);
         int currentQty = cartItems.getOrDefault(itemId, 0);
-        if (currentQty + quantity > stock) {
-            JOptionPane.showMessageDialog(null, "Not enough stock. Available: " + stock);
+        if (currentQty + quantity > stock_amount) {
+            JOptionPane.showMessageDialog(null, "Not enough stock_amount. Available: " + stock_amount);
             return false;
         }
 
@@ -43,9 +59,12 @@ public class Cart {
         if (cartItems.containsKey(itemId)) {
             int qty = cartItems.get(itemId);
             subTotal -= itemPrice;
-            if (qty <= 1) cartItems.remove(itemId);
-            else cartItems.put(itemId, qty - 1);
-            if (cartItems.isEmpty()) clear();
+            if (qty <= 1)
+                cartItems.remove(itemId);
+            else
+                cartItems.put(itemId, qty - 1);
+            if (cartItems.isEmpty())
+                clear();
         }
     }
 
@@ -58,11 +77,15 @@ public class Cart {
 
     private static int checkItemStockInDB(int itemId) {
         try (Connection conn = AppConfig.getConnection();
-             PreparedStatement pst = conn.prepareStatement("SELECT stock FROM Menu_Items WHERE item_id = ?")) {
+                PreparedStatement pst = conn
+                        .prepareStatement("SELECT stock_amount FROM Menu_Items WHERE item_id = ?")) {
             pst.setInt(1, itemId);
             ResultSet rs = pst.executeQuery();
-            if (rs.next()) return rs.getInt("stock");
-        } catch (SQLException ex) { ex.printStackTrace(); }
+            if (rs.next())
+                return rs.getInt("stock_amount");
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+        }
         return 0;
     }
 
@@ -71,16 +94,16 @@ public class Cart {
         try {
             conn = AppConfig.getConnection();
             conn.setAutoCommit(false);
-            String updateQuery = "UPDATE Menu_Items SET stock = stock - ? WHERE item_id = ? AND stock >= ?";
+            String updateQuery = "UPDATE Menu_Items SET stock_amount = stock_amount - ? WHERE item_id = ? AND stock_amount >= ?";
             PreparedStatement pst = conn.prepareStatement(updateQuery);
-            
+
             for (Map.Entry<Integer, Integer> entry : cartItems.entrySet()) {
                 pst.setInt(1, entry.getValue());
                 pst.setInt(2, entry.getKey());
                 pst.setInt(3, entry.getValue());
                 pst.addBatch();
             }
-            
+
             int[] results = pst.executeBatch();
             for (int r : results) {
                 if (r == 0) {
@@ -92,7 +115,11 @@ public class Cart {
             conn.commit();
             return true;
         } catch (SQLException ex) {
-            try { if (conn != null) conn.rollback(); } catch (Exception e) {}
+            try {
+                if (conn != null)
+                    conn.rollback();
+            } catch (Exception e) {
+            }
             return false;
         }
     }

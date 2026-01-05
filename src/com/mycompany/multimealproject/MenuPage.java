@@ -4,8 +4,6 @@ import javax.swing.*;
 import java.awt.*;
 import javax.swing.border.EmptyBorder;
 import java.sql.*;
-import java.util.HashSet;
-import java.util.Set;
 
 public class MenuPage extends JPanel {
 
@@ -19,14 +17,14 @@ public class MenuPage extends JPanel {
         this.userId = userId;
         this.restId = restId;
         this.restName = restName;
-        
+
         setLayout(new BorderLayout());
         setBackground(AppConfig.DARK_BACKGROUND);
 
         add(createHeader(), BorderLayout.NORTH);
         add(createMainContentScroll(), BorderLayout.CENTER);
     }
-    
+
     private JPanel createHeader() {
         JPanel headerPanel = new JPanel(new BorderLayout());
         headerPanel.setBackground(AppConfig.CARD_BACKGROUND);
@@ -61,40 +59,64 @@ public class MenuPage extends JPanel {
         scrollPane.getViewport().setBackground(AppConfig.DARK_BACKGROUND);
         return scrollPane;
     }
+
     private void loadMenuItems(JPanel panel) {
-        String query = "SELECT name, description, MIN(image_path) AS image_path " +
-                       "FROM Menu_Items WHERE rest_id = ? AND stock > 0 " +
-                       "GROUP BY name, description";
+        // Query fetches all in-stock_amount items for this restaurant
+        // We will deduplicate by name in Java to avoid SQL GROUP BY strictness issues
+        String query = "SELECT name, description, image_path " +
+                "FROM Menu_Items WHERE rest_id = ? AND stock_amount > 0 " +
+                "ORDER BY name";
         Connection conn = null;
         PreparedStatement pst = null;
         ResultSet rs = null;
 
         try {
             conn = AppConfig.getConnection();
-            if (conn == null) return;
-            
+            if (conn == null)
+                return;
+
             pst = conn.prepareStatement(query);
             pst.setInt(1, restId);
             rs = pst.executeQuery();
 
             boolean foundAvailableItems = false;
+            java.util.Set<String> processedItems = new java.util.HashSet<>();
+
             while (rs.next()) {
-                foundAvailableItems = true;
                 String name = rs.getString("name");
+
+                // If we've already displayed a card for this item name, skip (deduplication)
+                if (processedItems.contains(name)) {
+                    continue;
+                }
+
+                processedItems.add(name);
+                foundAvailableItems = true;
+
                 String desc = rs.getString("description");
                 String imagePath = rs.getString("image_path");
-                
-                // Card now also receives image path
+
                 panel.add(createMenuCard(name, desc, imagePath));
                 panel.add(Box.createVerticalStrut(15));
             }
+
             if (!foundAvailableItems) {
-                 JLabel emptyLabel = new JLabel("No items are currently in stock for this restaurant.", JLabel.CENTER);
-                 emptyLabel.setForeground(AppConfig.PLACEHOLDER_TEXT);
-                 panel.add(emptyLabel);
+                JLabel emptyLabel = new JLabel("No items are currently in stock_amount for this restaurant.",
+                        JLabel.CENTER);
+                emptyLabel.setForeground(AppConfig.PLACEHOLDER_TEXT);
+                emptyLabel.setFont(AppConfig.FONT_BOLD);
+                emptyLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+                panel.add(emptyLabel);
             }
+
+            // Force UI refresh
+            panel.revalidate();
+            panel.repaint();
+
         } catch (SQLException ex) {
-            System.err.println("Error loading menu items: " + ex.getMessage());
+            // Show error to user so they know something failed
+            JOptionPane.showMessageDialog(this, "Error loading menu items: " + ex.getMessage());
+            ex.printStackTrace();
         } finally {
             AppConfig.closeResources(conn, pst, rs);
         }
@@ -106,7 +128,7 @@ public class MenuPage extends JPanel {
         card.setMaximumSize(new Dimension(Integer.MAX_VALUE, 120));
         card.setBorder(BorderFactory.createLineBorder(AppConfig.BORDER_GRAY, 1));
         card.setBackground(AppConfig.CARD_BACKGROUND);
-        card.setCursor(new Cursor(Cursor.HAND_CURSOR)); // Indicate it's clickable
+        card.setCursor(new Cursor(Cursor.HAND_CURSOR));
 
         JLabel img = new JLabel("", JLabel.CENTER);
         img.setPreferredSize(new Dimension(120, 120));
@@ -114,11 +136,11 @@ public class MenuPage extends JPanel {
         img.setBackground(AppConfig.DARK_BACKGROUND);
         img.setForeground(AppConfig.PLACEHOLDER_TEXT);
         ImageIcon icon = AppConfig.loadImage(imagePath, 120, 120);
-        if (icon != null) {
+        if (icon != null)
             img.setIcon(icon);
-        } else {
+        else
             img.setText("[Image]");
-        }
+
         card.add(img, BorderLayout.WEST);
 
         JPanel centerPanel = new JPanel(new BorderLayout(0, 5));
@@ -132,14 +154,14 @@ public class MenuPage extends JPanel {
         JLabel descLabel = new JLabel("<html><p style='width:300px;'>" + description + "</p></html>");
         descLabel.setFont(new Font("Arial", Font.PLAIN, 12));
         descLabel.setForeground(AppConfig.PLACEHOLDER_TEXT);
-        
+
         JLabel clickHint = new JLabel("Click for Sizes and Pricing ->", JLabel.RIGHT);
         clickHint.setFont(AppConfig.FONT_BOLD);
         clickHint.setForeground(AppConfig.PRIMARY_RED);
 
         centerPanel.add(nameLabel, BorderLayout.NORTH);
         centerPanel.add(descLabel, BorderLayout.CENTER);
-        
+
         card.add(centerPanel, BorderLayout.CENTER);
         card.add(clickHint, BorderLayout.EAST);
 
@@ -148,13 +170,13 @@ public class MenuPage extends JPanel {
                 openItemDetailsModal(itemName, imagePath, description);
             }
         });
-        
+
         return card;
     }
-    
+
     private void openItemDetailsModal(String itemName, String imagePath, String description) {
-        ItemDetailsModal modal = new ItemDetailsModal(parentFrame, parentFrame, userId, restId, itemName, imagePath, description);
+        ItemDetailsModal modal = new ItemDetailsModal(parentFrame, parentFrame, userId, restId, itemName, imagePath,
+                description);
         modal.setVisible(true);
     }
-    
 }

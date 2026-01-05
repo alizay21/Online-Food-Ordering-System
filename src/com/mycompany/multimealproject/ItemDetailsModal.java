@@ -16,23 +16,23 @@ public class ItemDetailsModal extends JDialog {
     private String itemImagePath;
     private String itemDescription;
     private double packagingFee = 0.0;
-    
+
     // UI Components
     private JComboBox<String> sizeComboBox;
     private JSpinner quantitySpinner;
     private JLabel currentPriceLabel;
-    private JLabel stockLabel;
+    private JLabel stock_amountLabel;
     private JLabel totalLabel;
     private JRadioButton standardPackagingRadio;
     private JRadioButton ecoPackagingRadio;
     private JButton addToCartButton;
-    
-    // Data Cache: Stores price and stock for each size variant
+
+    // Data Cache: Stores price and stock_amount for each size variant
     // Key: Size (String), Value: Map<String, Object> (Price, Stock)
     private Map<String, Map<String, Object>> itemVariants = new HashMap<>();
 
     public ItemDetailsModal(JFrame parent, MainAppFrame parentFrame, int userId, int restId, String itemName,
-                            String imagePath, String description) {
+            String imagePath, String description) {
         super(parent, "Details: " + itemName, true); // true sets it as modal (blocking)
         this.parentFrame = parentFrame;
         this.userId = userId;
@@ -44,7 +44,7 @@ public class ItemDetailsModal extends JDialog {
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
         setSize(550, 450);
         setLocationRelativeTo(parent);
-        
+
         // 1. Load data first
         if (!loadItemVariants()) {
             JOptionPane.showMessageDialog(parent, "Could not load item details.", "Error", JOptionPane.ERROR_MESSAGE);
@@ -54,12 +54,12 @@ public class ItemDetailsModal extends JDialog {
 
         // 2. Initialize UI
         initComponents();
-        
+
         // 3. Set up listeners and initial display
         sizeComboBox.addActionListener(e -> updatePriceAndStock());
         updatePriceAndStock(); // Initial load
     }
-    
+
     private void initComponents() {
         JPanel mainPanel = new JPanel(new BorderLayout(15, 0));
         mainPanel.setBackground(AppConfig.DARK_BACKGROUND);
@@ -83,35 +83,37 @@ public class ItemDetailsModal extends JDialog {
         JPanel centerPanel = new JPanel();
         centerPanel.setLayout(new BoxLayout(centerPanel, BoxLayout.Y_AXIS));
         centerPanel.setBackground(AppConfig.DARK_BACKGROUND);
-        
+
         JLabel title = new JLabel(itemName, JLabel.LEFT);
         title.setFont(AppConfig.FONT_LARGE);
         title.setForeground(AppConfig.PRIMARY_RED);
         centerPanel.add(title);
         centerPanel.add(Box.createVerticalStrut(15));
-        
+
         // Size Selector - Fixed size (description intentionally hidden)
         sizeComboBox = new JComboBox<>(itemVariants.keySet().toArray(new String[0]));
+        sizeComboBox.setFont(AppConfig.FONT_REGULAR);
         sizeComboBox.setPreferredSize(new Dimension(200, 30));
         sizeComboBox.setMaximumSize(new Dimension(200, 30));
         centerPanel.add(createLabeledControl("Select Size:", sizeComboBox));
         centerPanel.add(Box.createVerticalStrut(10));
-        
+
         // Price Display
         currentPriceLabel = new JLabel("Price: Rs. 0.00");
         currentPriceLabel.setFont(new Font("Arial", Font.BOLD, 18));
         currentPriceLabel.setForeground(AppConfig.LIGHT_TEXT);
         centerPanel.add(currentPriceLabel);
-        
+
         // Stock Display
-        stockLabel = new JLabel("Stock: --");
-        stockLabel.setFont(new Font("Arial", Font.ITALIC, 12));
-        stockLabel.setForeground(AppConfig.PLACEHOLDER_TEXT);
-        centerPanel.add(stockLabel);
+        stock_amountLabel = new JLabel("Stock: --");
+        stock_amountLabel.setFont(new Font("Arial", Font.ITALIC, 12));
+        stock_amountLabel.setForeground(AppConfig.PLACEHOLDER_TEXT);
+        centerPanel.add(stock_amountLabel);
         centerPanel.add(Box.createVerticalStrut(10));
 
         // Quantity Selector - Fixed size
         quantitySpinner = new JSpinner(new SpinnerNumberModel(1, 1, 100, 1));
+        quantitySpinner.setFont(AppConfig.FONT_REGULAR);
         quantitySpinner.setPreferredSize(new Dimension(100, 30));
         quantitySpinner.setMaximumSize(new Dimension(100, 30));
         quantitySpinner.addChangeListener(e -> recalcTotal()); // Recalculate when quantity changes
@@ -124,31 +126,33 @@ public class ItemDetailsModal extends JDialog {
         JLabel packagingLabel = new JLabel("Packaging:");
         packagingLabel.setForeground(AppConfig.LIGHT_TEXT);
         packagingLabel.setFont(AppConfig.FONT_BOLD);
-        
+
         JPanel radioPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 0));
         radioPanel.setBackground(AppConfig.DARK_BACKGROUND);
-        
+
         standardPackagingRadio = new JRadioButton("Standard (Free)");
         ecoPackagingRadio = new JRadioButton("Eco-Friendly (+Rs. " + String.format("%.2f", packagingFee) + ")");
         standardPackagingRadio.setBackground(AppConfig.DARK_BACKGROUND);
         ecoPackagingRadio.setBackground(AppConfig.DARK_BACKGROUND);
         standardPackagingRadio.setForeground(AppConfig.LIGHT_TEXT);
         ecoPackagingRadio.setForeground(AppConfig.LIGHT_TEXT);
+        standardPackagingRadio.setFont(AppConfig.FONT_REGULAR);
+        ecoPackagingRadio.setFont(AppConfig.FONT_REGULAR);
         standardPackagingRadio.setFocusPainted(false);
         ecoPackagingRadio.setFocusPainted(false);
-        
+
         // Add listeners to recalculate total when packaging changes
         standardPackagingRadio.addActionListener(e -> recalcTotal());
         ecoPackagingRadio.addActionListener(e -> recalcTotal());
-        
+
         ButtonGroup group = new ButtonGroup();
         group.add(standardPackagingRadio);
         group.add(ecoPackagingRadio);
         standardPackagingRadio.setSelected(true);
-        
+
         radioPanel.add(standardPackagingRadio);
         radioPanel.add(ecoPackagingRadio);
-        
+
         packagingPanel.add(packagingLabel, BorderLayout.NORTH);
         packagingPanel.add(radioPanel, BorderLayout.CENTER);
         centerPanel.add(packagingPanel);
@@ -159,7 +163,7 @@ public class ItemDetailsModal extends JDialog {
         totalLabel.setForeground(AppConfig.PRIMARY_RED);
         centerPanel.add(Box.createVerticalStrut(10));
         centerPanel.add(totalLabel);
-        
+
         // --- SOUTH: Button ---
         addToCartButton = new JButton("Add to Cart");
         AppConfig.styleFlatButton(addToCartButton, AppConfig.PRIMARY_RED, Color.WHITE);
@@ -169,10 +173,10 @@ public class ItemDetailsModal extends JDialog {
         mainPanel.add(title, BorderLayout.NORTH);
         mainPanel.add(centerPanel, BorderLayout.CENTER);
         mainPanel.add(addToCartButton, BorderLayout.SOUTH);
-        
+
         add(mainPanel);
     }
-    
+
     private JPanel createLabeledControl(String labelText, JComponent control) {
         JPanel panel = new JPanel(new BorderLayout(10, 0));
         panel.setBackground(AppConfig.DARK_BACKGROUND);
@@ -183,33 +187,34 @@ public class ItemDetailsModal extends JDialog {
         panel.add(control, BorderLayout.CENTER);
         return panel;
     }
-    
+
     // --- Data Logic ---
-    
+
     // Loads all size variants for the selected item (base name)
     private boolean loadItemVariants() {
         // Find all unique sizes associated with this item name and restaurant
-        String query = "SELECT item_id, size, price, stock, description, image_path, packaging_fee FROM Menu_Items WHERE rest_id = ? AND name = ?";
+        String query = "SELECT item_id, size, price, stock_amount, description, image_path, packaging_fee FROM Menu_Items WHERE rest_id = ? AND name = ?";
         Connection conn = null;
         PreparedStatement pst = null;
         ResultSet rs = null;
-        
+
         try {
             conn = AppConfig.getConnection();
-            if (conn == null) return false;
-            
+            if (conn == null)
+                return false;
+
             pst = conn.prepareStatement(query);
             pst.setInt(1, restId);
             pst.setString(2, itemName);
             rs = pst.executeQuery();
-            
+
             boolean first = true;
             while (rs.next()) {
                 String size = rs.getString("size");
                 Map<String, Object> details = new HashMap<>();
                 details.put("item_id", rs.getInt("item_id"));
                 details.put("price", rs.getDouble("price"));
-                details.put("stock", rs.getInt("stock"));
+                details.put("stock_amount", rs.getInt("stock_amount"));
                 itemVariants.put(size, details);
 
                 if (first) {
@@ -224,7 +229,7 @@ public class ItemDetailsModal extends JDialog {
                 }
             }
             return !itemVariants.isEmpty();
-            
+
         } catch (SQLException ex) {
             System.err.println("Error loading item variants: " + ex.getMessage());
             return false;
@@ -232,36 +237,38 @@ public class ItemDetailsModal extends JDialog {
             AppConfig.closeResources(conn, pst, rs);
         }
     }
-    
+
     // Updates UI based on sizeComboBox selection
     private void updatePriceAndStock() {
         String selectedSize = (String) sizeComboBox.getSelectedItem();
-        if (selectedSize == null) return;
-        
+        if (selectedSize == null)
+            return;
+
         Map<String, Object> details = itemVariants.get(selectedSize);
-        if (details == null) return;
+        if (details == null)
+            return;
 
         double price = (double) details.get("price");
-        int stock = (int) details.get("stock");
-        
+        int stock_amount = (int) details.get("stock_amount");
+
         currentPriceLabel.setText("Price: Rs. " + String.format("%.2f", price));
-        stockLabel.setText("Stock: " + (stock > 0 ? stock + " available" : "SOLD OUT"));
-        
-        if (stock > 0) {
-            // Update Spinner model to limit quantity by available stock
-            int maxAllowed = stock;
-            
+        stock_amountLabel.setText("Stock: " + (stock_amount > 0 ? stock_amount + " available" : "SOLD OUT"));
+
+        if (stock_amount > 0) {
+            // Update Spinner model to limit quantity by available stock_amount
+            int maxAllowed = stock_amount;
+
             // Re-fetch the model and set maximum limit
             SpinnerNumberModel model = (SpinnerNumberModel) quantitySpinner.getModel();
             model.setMaximum(maxAllowed);
-            
-            // Reset spinner value if current value exceeds new stock limit
+
+            // Reset spinner value if current value exceeds new stock_amount limit
             if ((Integer) model.getValue() > maxAllowed) {
                 model.setValue(maxAllowed);
             }
             addToCartButton.setEnabled(true);
         } else {
-            // Disable buying if out of stock
+            // Disable buying if out of stock_amount
             quantitySpinner.setValue(0);
             SpinnerNumberModel model = (SpinnerNumberModel) quantitySpinner.getModel();
             model.setMaximum(0);
@@ -274,9 +281,11 @@ public class ItemDetailsModal extends JDialog {
 
     private void recalcTotal() {
         String selectedSize = (String) sizeComboBox.getSelectedItem();
-        if (selectedSize == null) return;
+        if (selectedSize == null)
+            return;
         Map<String, Object> details = itemVariants.get(selectedSize);
-        if (details == null) return;
+        if (details == null)
+            return;
         double basePrice = (double) details.get("price");
         int quantity = (Integer) quantitySpinner.getValue();
         double extra = (ecoPackagingRadio != null && ecoPackagingRadio.isSelected()) ? packagingFee : 0.0;
@@ -286,40 +295,44 @@ public class ItemDetailsModal extends JDialog {
             ecoPackagingRadio.setText("Eco-Friendly (+" + String.format("%.2f", packagingFee) + " / item)");
         }
     }
-    
+
     private void handleAddToCart() {
         String selectedSize = (String) sizeComboBox.getSelectedItem();
         int quantity = (Integer) quantitySpinner.getValue();
-        
+
         if (quantity <= 0 || selectedSize == null) {
-            JOptionPane.showMessageDialog(this, "Please select a valid quantity.", "Input Error", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Please select a valid quantity.", "Input Error",
+                    JOptionPane.ERROR_MESSAGE);
             return;
         }
-        
+
         Map<String, Object> details = itemVariants.get(selectedSize);
         int itemId = (int) details.get("item_id");
         double basePrice = (double) details.get("price");
         String selectedPackaging = (ecoPackagingRadio != null && ecoPackagingRadio.isSelected())
-                ? "Eco-Friendly" : "Standard";
+                ? "Eco-Friendly"
+                : "Standard";
         double perUnitPrice = basePrice + ("Eco-Friendly".equals(selectedPackaging) ? packagingFee : 0.0);
 
         // Remember packaging choice at cart level
         Cart.setPackagingType(selectedPackaging);
-        
-        // Cart validation is handled inside Cart.addItem, which checks stock availability.
+
+        // Cart validation is handled inside Cart.addItem, which checks stock_amount
+        // availability.
         boolean added = Cart.addItem(itemId, perUnitPrice, restId, quantity);
-        
+
         if (added) {
-            JOptionPane.showMessageDialog(this, 
-                quantity + " x " + itemName + " (" + selectedSize + ") added to cart!", 
-                "Added", JOptionPane.INFORMATION_MESSAGE);
-            
+            JOptionPane.showMessageDialog(this,
+                    quantity + " x " + itemName + " (" + selectedSize + ") added to cart!",
+                    "Added", JOptionPane.INFORMATION_MESSAGE);
+
             // Navigate to checkout page
             dispose();
             CheckoutPage checkoutView = new CheckoutPage(parentFrame, userId);
             parentFrame.getContentPanel().add(checkoutView, MainAppFrame.CHECKOUT_VIEW);
             parentFrame.switchView(MainAppFrame.CHECKOUT_VIEW);
-        } 
-        // If not added, Cart.addItem already displayed an error (e.g., stock mismatch).
+        }
+        // If not added, Cart.addItem already displayed an error (e.g., stock_amount
+        // mismatch).
     }
 }

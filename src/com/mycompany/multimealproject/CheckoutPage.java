@@ -10,15 +10,14 @@ public class CheckoutPage extends JPanel {
 
     private final MainAppFrame parentFrame;
     private final int userId;
-    private final double deliveryCharge = 150.00; 
+    private final double deliveryCharge = 150.00;
 
-    private JLabel totalSummaryLabel; 
+    private JLabel totalSummaryLabel;
     private JTextField addressField;
     private JCheckBox saveAddressCheckbox;
     private JPanel itemSummaryPanel;
     private JButton confirmBtn;
-    
-    // Payment Components
+
     private JRadioButton cashRadio;
     private JRadioButton cardRadio;
     private ButtonGroup paymentGroup;
@@ -26,7 +25,7 @@ public class CheckoutPage extends JPanel {
     public CheckoutPage(MainAppFrame parentFrame, int userId) {
         this.parentFrame = parentFrame;
         this.userId = userId;
-        
+
         setLayout(new BorderLayout());
         setBackground(AppConfig.DARK_BACKGROUND);
 
@@ -34,13 +33,13 @@ public class CheckoutPage extends JPanel {
         add(createMainLayout(), BorderLayout.CENTER);
         loadAddressAndRefresh();
     }
-    
+
     private void loadAddressAndRefresh() {
         String address = getAddressFromDB();
         addressField.setText(address.isEmpty() ? "" : address);
         refreshCartDisplay();
     }
-    
+
     private String getAddressFromDB() {
         String query = "SELECT address FROM Users WHERE user_id = ?";
         try (Connection conn = AppConfig.getConnection();
@@ -56,7 +55,7 @@ public class CheckoutPage extends JPanel {
         }
         return "";
     }
-    
+
     private JPanel createHeader() {
         JPanel headerPanel = new JPanel(new BorderLayout());
         headerPanel.setBackground(AppConfig.CARD_BACKGROUND);
@@ -65,7 +64,7 @@ public class CheckoutPage extends JPanel {
         JLabel titleLabel = new JLabel("Checkout (" + Cart.getPackagingType() + ")", JLabel.LEFT);
         titleLabel.setFont(new Font("Arial", Font.BOLD, 26));
         titleLabel.setForeground(AppConfig.PRIMARY_RED);
-        
+
         headerPanel.add(titleLabel, BorderLayout.WEST);
         return headerPanel;
     }
@@ -74,17 +73,22 @@ public class CheckoutPage extends JPanel {
         JPanel mainPanel = new JPanel(new GridBagLayout());
         mainPanel.setBackground(AppConfig.DARK_BACKGROUND);
         mainPanel.setBorder(new EmptyBorder(20, 20, 20, 20));
-        
+
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(10, 10, 10, 10);
-        
-        gbc.gridx = 0; gbc.gridy = 0; gbc.weightx = 0.6; gbc.weighty = 1.0;
+
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.weightx = 0.6;
+        gbc.weighty = 1.0;
         gbc.fill = GridBagConstraints.BOTH;
         mainPanel.add(createItemDetailsPanel(), gbc);
-        
-        gbc.gridx = 1; gbc.gridy = 0; gbc.weightx = 0.4;
+
+        gbc.gridx = 1;
+        gbc.gridy = 0;
+        gbc.weightx = 0.4;
         mainPanel.add(createSummaryPanel(), gbc);
-        
+
         return mainPanel;
     }
 
@@ -92,40 +96,40 @@ public class CheckoutPage extends JPanel {
         JPanel detailsPanel = new JPanel(new BorderLayout(10, 10));
         detailsPanel.setBackground(AppConfig.CARD_BACKGROUND);
         detailsPanel.setBorder(new EmptyBorder(20, 20, 20, 20));
-        
-        // Address Section
+
         JPanel addressInputPanel = new JPanel(new BorderLayout(5, 5));
         addressInputPanel.setBackground(AppConfig.CARD_BACKGROUND);
-        
+
         JLabel addressLabelHeader = new JLabel("Delivery Address:");
         addressLabelHeader.setFont(AppConfig.FONT_BOLD);
         addressLabelHeader.setForeground(AppConfig.LIGHT_TEXT);
-        
+
         addressField = new JTextField();
+        addressField.setFont(AppConfig.FONT_INPUT);
         addressField.setBackground(AppConfig.DARK_BACKGROUND);
-        addressField.setForeground(AppConfig.LIGHT_TEXT);
+        addressField.setForeground(Color.WHITE);
         addressField.setCaretColor(Color.WHITE);
         addressField.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(AppConfig.BORDER_GRAY),
-            BorderFactory.createEmptyBorder(5, 5, 5, 5)));
-        
+                BorderFactory.createLineBorder(AppConfig.BORDER_GRAY),
+                BorderFactory.createEmptyBorder(5, 5, 5, 5)));
+
         saveAddressCheckbox = new JCheckBox("Save this address for future orders");
         saveAddressCheckbox.setBackground(AppConfig.CARD_BACKGROUND);
         saveAddressCheckbox.setForeground(AppConfig.PLACEHOLDER_TEXT);
         saveAddressCheckbox.setSelected(true);
-        
+
         addressInputPanel.add(addressLabelHeader, BorderLayout.NORTH);
         addressInputPanel.add(addressField, BorderLayout.CENTER);
         addressInputPanel.add(saveAddressCheckbox, BorderLayout.SOUTH);
-        
+
         itemSummaryPanel = new JPanel();
         itemSummaryPanel.setLayout(new BoxLayout(itemSummaryPanel, BoxLayout.Y_AXIS));
         itemSummaryPanel.setBackground(AppConfig.CARD_BACKGROUND);
-        
+
         JScrollPane scrollPane = new JScrollPane(itemSummaryPanel);
         scrollPane.setBorder(null);
         scrollPane.getViewport().setBackground(AppConfig.CARD_BACKGROUND);
-        
+
         detailsPanel.add(addressInputPanel, BorderLayout.NORTH);
         detailsPanel.add(scrollPane, BorderLayout.CENTER);
         return detailsPanel;
@@ -156,9 +160,8 @@ public class CheckoutPage extends JPanel {
         totalSummaryLabel.setFont(AppConfig.FONT_LARGE);
         totalSummaryLabel.setForeground(AppConfig.PRIMARY_RED);
         totalSummaryLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        
+
         confirmBtn = new JButton("Place Order");
-        // Enforce flat red button with black text
         confirmBtn.setBackground(AppConfig.PRIMARY_RED);
         confirmBtn.setForeground(new Color(30, 30, 30));
         confirmBtn.setFont(AppConfig.FONT_BOLD);
@@ -166,10 +169,8 @@ public class CheckoutPage extends JPanel {
         confirmBtn.setBorderPainted(false);
         confirmBtn.setContentAreaFilled(true);
         confirmBtn.setOpaque(true);
-        confirmBtn.setRolloverEnabled(false);
-        confirmBtn.setMaximumSize(new Dimension(Integer.MAX_VALUE, 50));
         confirmBtn.addActionListener(e -> placeOrder());
-        
+
         summaryPanel.add(pLabel);
         summaryPanel.add(Box.createVerticalStrut(10));
         summaryPanel.add(cashRadio);
@@ -186,7 +187,7 @@ public class CheckoutPage extends JPanel {
         rb.setBackground(AppConfig.CARD_BACKGROUND);
         rb.setForeground(AppConfig.LIGHT_TEXT);
         rb.setFocusPainted(false);
-        rb.setFont(new Font("Arial", Font.PLAIN, 14));
+        rb.setFont(AppConfig.FONT_REGULAR);
         rb.setAlignmentX(Component.LEFT_ALIGNMENT);
     }
 
@@ -207,6 +208,8 @@ public class CheckoutPage extends JPanel {
 
     private void loadCartDetails() {
         Map<Integer, Integer> cartItems = Cart.getItems();
+        if (cartItems.isEmpty()) return;
+
         String itemIds = cartItems.keySet().toString().replace("[", "").replace("]", "");
         String query = "SELECT item_id, name, price FROM Menu_Items WHERE item_id IN (" + itemIds + ")";
 
@@ -221,7 +224,9 @@ public class CheckoutPage extends JPanel {
             itemSummaryPanel.add(Box.createVerticalStrut(20));
             itemSummaryPanel.add(createPriceRow("Sub Total:", Cart.getSubTotal()));
             itemSummaryPanel.add(createPriceRow("Delivery Fee:", deliveryCharge));
-        } catch (SQLException ex) { ex.printStackTrace(); }
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+        }
     }
 
     private JPanel createItemRow(int itemId, String name, int quantity, double price) {
@@ -233,29 +238,20 @@ public class CheckoutPage extends JPanel {
         nameLabel.setForeground(AppConfig.LIGHT_TEXT);
         nameLabel.setFont(AppConfig.FONT_BOLD);
 
-        JLabel qtyLabel = new JLabel("x" + quantity);
+        JLabel qtyLabel = new JLabel(" x" + quantity + " ");
         qtyLabel.setForeground(AppConfig.PRIMARY_RED);
 
         JLabel priceLabel = new JLabel("Rs. " + String.format("%.2f", quantity * price));
         priceLabel.setForeground(AppConfig.LIGHT_TEXT);
 
-        JButton minusBtn = new JButton("-");
-        minusBtn.setPreferredSize(new Dimension(32, 28));
-        minusBtn.setBackground(AppConfig.DARK_BACKGROUND);
-        minusBtn.setForeground(Color.WHITE);
-        minusBtn.setFocusPainted(false);
-        minusBtn.setBorderPainted(false);
+        // Styling helper for the small buttons
+        JButton minusBtn = createStyledSmallButton("-");
         minusBtn.addActionListener(e -> {
             Cart.removeItem(itemId, price);
             loadAddressAndRefresh();
         });
 
-        JButton plusBtn = new JButton("+");
-        plusBtn.setPreferredSize(new Dimension(32, 28));
-        plusBtn.setBackground(AppConfig.DARK_BACKGROUND);
-        plusBtn.setForeground(Color.WHITE);
-        plusBtn.setFocusPainted(false);
-        plusBtn.setBorderPainted(false);
+        JButton plusBtn = createStyledSmallButton("+");
         plusBtn.addActionListener(e -> {
             Cart.addItem(itemId, price, Cart.getRestaurantId(), 1);
             loadAddressAndRefresh();
@@ -271,6 +267,24 @@ public class CheckoutPage extends JPanel {
         row.add(nameLabel, BorderLayout.WEST);
         row.add(controls, BorderLayout.EAST);
         return row;
+    }
+
+    // NEW HELPER: Ensures buttons are colored and visible
+    private JButton createStyledSmallButton(String text) {
+        JButton btn = new JButton(text);
+        btn.setPreferredSize(new Dimension(35, 28));
+        btn.setMargin(new Insets(0, 0, 0, 0));
+        btn.setFont(new Font("Arial", Font.BOLD, 16));
+        
+        // Match the "Place Order" button colors for visibility
+        btn.setBackground(AppConfig.PRIMARY_RED);
+        btn.setForeground(new Color(30, 30, 30)); // Dark text on Red background
+        
+        btn.setOpaque(true);
+        btn.setContentAreaFilled(true);
+        btn.setBorderPainted(false);
+        btn.setFocusPainted(false);
+        return btn;
     }
 
     private JLabel createPriceRow(String label, double amount) {
@@ -291,47 +305,57 @@ public class CheckoutPage extends JPanel {
         if (paymentMethod.equals("Card")) {
             String card = JOptionPane.showInputDialog(this, "Enter 16-digit Card Number:");
             if (card == null) return;
-            String digitsOnly = card.replaceAll("\\D", "");
-            if (digitsOnly.length() != 16) {
-                JOptionPane.showMessageDialog(this, "Card number must be exactly 16 digits.");
+            if (card.replaceAll("\\D", "").length() != 16) {
+                JOptionPane.showMessageDialog(this, "Invalid Card Number.");
                 return;
             }
         }
 
         if (!Cart.subtractStockOnCheckout()) return;
 
-        if (saveAddressCheckbox.isSelected()) saveAddressToProfile(address);
-
+        int userOrderSequence = 1;
         try (Connection conn = AppConfig.getConnection()) {
+            // Count user's previous orders
+            String countQuery = "SELECT COUNT(*) FROM Orders WHERE user_id = ?";
+            PreparedStatement pstCount = conn.prepareStatement(countQuery);
+            pstCount.setInt(1, userId);
+            ResultSet rsCount = pstCount.executeQuery();
+            if (rsCount.next()) {
+                userOrderSequence = rsCount.getInt(1) + 1;
+            }
+
             conn.setAutoCommit(false);
-            String orderQuery = "INSERT INTO Orders (user_id, rest_id, total_amount, delivery_address, status, packaging_type, payment_method) VALUES (?, ?, ?, ?, 'Pending', ?, ?)";
+            String orderQuery = "INSERT INTO Orders (user_id, rest_id, total_amount, delivery_address, status, payment_method) VALUES (?, ?, ?, ?, 'Pending', ?)";
             PreparedStatement pstOrder = conn.prepareStatement(orderQuery, Statement.RETURN_GENERATED_KEYS);
             pstOrder.setInt(1, userId);
             pstOrder.setInt(2, Cart.getRestaurantId());
             pstOrder.setDouble(3, Cart.getSubTotal() + deliveryCharge);
             pstOrder.setString(4, address);
-            pstOrder.setString(5, Cart.getPackagingType());
-            pstOrder.setString(6, paymentMethod);
+            pstOrder.setString(5, paymentMethod);
             pstOrder.executeUpdate();
 
-            ResultSet rs = pstOrder.getGeneratedKeys();
-            if (rs.next()) {
-                long orderId = rs.getLong(1);
-                String itemQuery = "INSERT INTO Order_Items (order_id, item_id, quantity, price_at_order, size_at_order) SELECT ?, item_id, ?, price, size FROM Menu_Items WHERE item_id = ?";
+            ResultSet rsKeys = pstOrder.getGeneratedKeys();
+            if (rsKeys.next()) {
+                long globalOrderId = rsKeys.getLong(1);
+                String itemQuery = "INSERT INTO Order_Items (order_id, item_id, quantity, price_at_order) SELECT ?, item_id, ?, price FROM Menu_Items WHERE item_id = ?";
                 PreparedStatement pstItem = conn.prepareStatement(itemQuery);
                 for (Map.Entry<Integer, Integer> entry : Cart.getItems().entrySet()) {
-                    pstItem.setLong(1, orderId);
+                    pstItem.setLong(1, globalOrderId);
                     pstItem.setInt(2, entry.getValue());
                     pstItem.setInt(3, entry.getKey());
                     pstItem.addBatch();
                 }
                 pstItem.executeBatch();
                 conn.commit();
-                JOptionPane.showMessageDialog(this, "Order #" + orderId + " placed successfully!");
+
+                if (saveAddressCheckbox.isSelected()) saveAddressToProfile(address);
+
+                JOptionPane.showMessageDialog(this, "Your Order #" + userOrderSequence + " placed successfully!");
                 Cart.clear();
                 parentFrame.switchView(MainAppFrame.HOME_VIEW);
             }
         } catch (SQLException ex) {
+            ex.printStackTrace();
             JOptionPane.showMessageDialog(this, "Checkout error: " + ex.getMessage());
         }
     }
@@ -343,6 +367,8 @@ public class CheckoutPage extends JPanel {
             pst.setString(1, address);
             pst.setInt(2, userId);
             pst.executeUpdate();
-        } catch (SQLException ex) { ex.printStackTrace(); }
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+        }
     }
 }

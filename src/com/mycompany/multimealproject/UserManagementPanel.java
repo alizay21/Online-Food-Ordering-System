@@ -191,9 +191,17 @@ public class UserManagementPanel extends JPanel {
         
         String username = usernameField.getText();
         String email = emailField.getText();
-        String phone = phoneField.getText();
+        String phone = phoneField.getText().trim();
         String address = addressField.getText();
         String role = (String) roleComboBox.getSelectedItem();
+        
+        if (!phone.isEmpty() && !phone.matches("\\d+")) {
+        JOptionPane.showMessageDialog(this, 
+            "Phone number must contain only digits (0-9).", 
+            "Input Error", 
+            JOptionPane.ERROR_MESSAGE);
+        return; // This stops the method here and prevents the DB update
+    }
 
         String query = "UPDATE Users SET username = ?, email = ?, phone = ?, address = ?, role = ? WHERE user_id = ?";
         Connection conn = null;

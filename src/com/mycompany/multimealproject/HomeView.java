@@ -4,7 +4,7 @@ import javax.swing.*;
 import java.awt.*;
 import javax.swing.border.EmptyBorder;
 import java.sql.*;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class HomeView extends JPanel {
@@ -18,13 +18,22 @@ public class HomeView extends JPanel {
         setLayout(new BorderLayout());
         setBackground(AppConfig.DARK_BACKGROUND);
 
-        // Header now only provides spacing/branding instead of search
+        // Header (Static at the top of this panel)
         add(createHeaderPanel(), BorderLayout.NORTH);
 
-        JScrollPane scrollPane = new JScrollPane(createMainContent());
-        scrollPane.setBorder(null);
-        scrollPane.getViewport().setBackground(AppConfig.DARK_BACKGROUND);
-        add(scrollPane, BorderLayout.CENTER);
+        // --- MAIN SCROLLABLE CONTENT ---
+        // We wrap createMainContent() in a JScrollPane so the whole page scrolls
+        JScrollPane mainScrollPane = new JScrollPane(createMainContent());
+        mainScrollPane.setBorder(null);
+        mainScrollPane.getViewport().setBackground(AppConfig.DARK_BACKGROUND);
+        
+        // This line is crucial for mouse pad / scroll wheel responsiveness
+        mainScrollPane.getVerticalScrollBar().setUnitIncrement(16);
+        
+        mainScrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+        mainScrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
+
+        add(mainScrollPane, BorderLayout.CENTER);
     }
 
     private JPanel createHeaderPanel() {
@@ -32,7 +41,6 @@ public class HomeView extends JPanel {
         headerPanel.setBackground(AppConfig.DARK_BACKGROUND);
         headerPanel.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
 
-        // Replaced searchField with a Title Label
         JLabel welcomeLabel = new JLabel("Explore Cuisines");
         welcomeLabel.setFont(new Font("Arial", Font.BOLD, 26));
         welcomeLabel.setForeground(AppConfig.PRIMARY_RED);
@@ -58,30 +66,18 @@ public class HomeView extends JPanel {
     }
 
     private Map<Integer, String> loadCuisineData() {
-        // Use LinkedHashMap to preserve insertion order from the SQL query
-        Map<Integer, String> cuisines = new java.util.LinkedHashMap<>();
-        // Order by cuisine_id to match the logical order in database_setup.sql (Desi
-        // first, Pizza last)
+        Map<Integer, String> cuisines = new LinkedHashMap<>();
         String query = "SELECT cuisine_id, name FROM Cuisines ORDER BY cuisine_id";
-        Connection conn = null;
-        PreparedStatement pst = null;
-        ResultSet rs = null;
-
-        try {
-            conn = AppConfig.getConnection();
-            if (conn == null)
-                return cuisines;
-
-            pst = conn.prepareStatement(query);
-            rs = pst.executeQuery();
-
+        
+        try (Connection conn = AppConfig.getConnection();
+             PreparedStatement pst = conn.prepareStatement(query);
+             ResultSet rs = pst.executeQuery()) {
+            
             while (rs.next()) {
                 cuisines.put(rs.getInt("cuisine_id"), rs.getString("name"));
             }
         } catch (SQLException ex) {
             System.err.println("Error loading cuisines: " + ex.getMessage());
-        } finally {
-            AppConfig.closeResources(conn, pst, rs);
         }
         return cuisines;
     }
@@ -90,7 +86,9 @@ public class HomeView extends JPanel {
         JPanel sectionPanel = new JPanel();
         sectionPanel.setLayout(new BorderLayout());
         sectionPanel.setBackground(AppConfig.DARK_BACKGROUND);
-        sectionPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 400));
+        
+        // This allows the section to expand horizontally but stay fixed vertically
+        sectionPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 300));
 
         JLabel titleLabel = new JLabel(" " + title, JLabel.LEFT);
         titleLabel.setFont(AppConfig.FONT_LARGE);
@@ -102,42 +100,35 @@ public class HomeView extends JPanel {
 
         loadRestaurantsByCuisine(restaurantRow, cuisineId, title);
 
-        JScrollPane scrollPane = new JScrollPane(restaurantRow);
-        scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
-        scrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_NEVER);
-        scrollPane.setBorder(null);
-        scrollPane.getViewport().setBackground(AppConfig.DARK_BACKGROUND);
+        // Horizontal scrolling for the specific restaurant row
+        JScrollPane rowScroll = new JScrollPane(restaurantRow);
+        rowScroll.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+        rowScroll.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_NEVER);
+        rowScroll.setBorder(null);
+        rowScroll.getHorizontalScrollBar().setUnitIncrement(16); // Smooth horizontal scroll
+        rowScroll.getViewport().setBackground(AppConfig.DARK_BACKGROUND);
 
-        sectionPanel.add(scrollPane, BorderLayout.CENTER);
+        sectionPanel.add(rowScroll, BorderLayout.CENTER);
         return sectionPanel;
     }
 
     private void loadRestaurantsByCuisine(JPanel panel, int cuisineId, String cuisineName) {
         String query = "SELECT rest_id, name, image_path FROM Restaurants WHERE cuisine_id = ?";
-        Connection conn = null;
-        PreparedStatement pst = null;
-        ResultSet rs = null;
-
-        try {
-            conn = AppConfig.getConnection();
-            if (conn == null)
-                return;
-
-            pst = conn.prepareStatement(query);
+        
+        try (Connection conn = AppConfig.getConnection();
+             PreparedStatement pst = conn.prepareStatement(query)) {
+            
             pst.setInt(1, cuisineId);
-            rs = pst.executeQuery();
-
-            while (rs.next()) {
-                int restId = rs.getInt("rest_id");
-                String name = rs.getString("name");
-                String imagePath = rs.getString("image_path");
-
-                panel.add(createRestaurantCard(restId, name, cuisineName, imagePath));
+            try (ResultSet rs = pst.executeQuery()) {
+                while (rs.next()) {
+                    int restId = rs.getInt("rest_id");
+                    String name = rs.getString("name");
+                    String imagePath = rs.getString("image_path");
+                    panel.add(createRestaurantCard(restId, name, cuisineName, imagePath));
+                }
             }
         } catch (SQLException ex) {
             System.err.println("Error loading restaurants: " + ex.getMessage());
-        } finally {
-            AppConfig.closeResources(conn, pst, rs);
         }
     }
 
@@ -154,7 +145,6 @@ public class HomeView extends JPanel {
         imgLabel.setOpaque(true);
 
         ImageIcon icon = AppConfig.loadImage(imagePath, 250, 140);
-
         if (icon != null) {
             imgLabel.setIcon(icon);
         } else {

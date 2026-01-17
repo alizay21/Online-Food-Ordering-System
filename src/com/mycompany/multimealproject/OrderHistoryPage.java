@@ -20,10 +20,8 @@ public class OrderHistoryPage extends JPanel {
         setLayout(new BorderLayout());
         setBackground(AppConfig.DARK_BACKGROUND);
 
-        // Build the permanent header
         add(createHeader(), BorderLayout.NORTH);
 
-        // Container for dynamic content
         mainContentPanel = new JPanel();
         mainContentPanel.setLayout(new BoxLayout(mainContentPanel, BoxLayout.Y_AXIS));
         mainContentPanel.setBackground(AppConfig.DARK_BACKGROUND);
@@ -36,22 +34,15 @@ public class OrderHistoryPage extends JPanel {
         
         add(scrollPane, BorderLayout.CENTER);
 
-        // Initial load
         refreshUI();
     }
 
-    /**
-     * Clears and rebuilds the page content from the database.
-     */
     public void refreshUI() {
         mainContentPanel.removeAll();
         mainContentPanel.setBorder(new EmptyBorder(20, 20, 20, 20));
 
-        // 1. Add Recommended Section
         mainContentPanel.add(createRecommendedSection());
         mainContentPanel.add(Box.createVerticalStrut(40));
-
-        // 2. Add History Section
         mainContentPanel.add(createHistorySection());
 
         mainContentPanel.revalidate();
@@ -96,19 +87,18 @@ public class OrderHistoryPage extends JPanel {
             msg.setForeground(AppConfig.PLACEHOLDER_TEXT);
             panel.add(msg);
         } else {
-            String itemName = (String) bestRecommendation.get("item_name");
-            String restName = (String) bestRecommendation.get("rest_name");
-            int itemId = (int) bestRecommendation.get("item_id");
-            int restId = (int) bestRecommendation.get("rest_id");
-            double price = (double) bestRecommendation.get("price");
-
-            panel.add(createRecommendationCard(itemName, restName, price, itemId, restId));
+            panel.add(createRecommendationCard(
+                (String) bestRecommendation.get("item_name"), 
+                (String) bestRecommendation.get("rest_name"), 
+                (double) bestRecommendation.get("price"), 
+                (int) bestRecommendation.get("item_id"), 
+                (int) bestRecommendation.get("rest_id")
+            ));
         }
         return panel;
     }
 
     private Map<String, Object> getBestRecommendedOrder() {
-        // SQL: COUNT how many separate orders this item appeared in
         String query = "SELECT mi.item_id, mi.name AS item_name, mi.price, r.rest_id, r.name AS rest_name, " +
                        "COUNT(DISTINCT o.order_id) AS frequency " +
                        "FROM Orders o " +
@@ -182,7 +172,8 @@ public class OrderHistoryPage extends JPanel {
     }
 
     private void loadOrderHistory(JPanel panel) {
-        String orderQuery = "SELECT o.order_id, r.name AS rest_name, o.order_date, o.total_amount, o.status " +
+        // Updated query to include rest_id for feedback purposes
+        String orderQuery = "SELECT o.order_id, o.rest_id, r.name AS rest_name, o.order_date, o.total_amount, o.status " +
                            "FROM Orders o JOIN Restaurants r ON o.rest_id = r.rest_id " +
                            "WHERE o.user_id = ? ORDER BY o.order_date DESC";
 
@@ -207,6 +198,7 @@ public class OrderHistoryPage extends JPanel {
 
     private JPanel createOrderCard(ResultSet rs, Connection conn) throws SQLException {
         int orderId = rs.getInt("order_id");
+        int restId = rs.getInt("rest_id");
         String restName = rs.getString("rest_name");
         String date = rs.getTimestamp("order_date").toString().substring(0, 16);
         double total = rs.getDouble("total_amount");
@@ -226,7 +218,7 @@ public class OrderHistoryPage extends JPanel {
         String itemText = summary.length() > 0 ? summary.substring(0, summary.length() - 2) : "No items";
 
         JPanel card = new JPanel(new BorderLayout());
-        card.setMaximumSize(new Dimension(Integer.MAX_VALUE, 120));
+        card.setMaximumSize(new Dimension(Integer.MAX_VALUE, 140));
         card.setBackground(AppConfig.CARD_BACKGROUND);
         card.setBorder(new EmptyBorder(15, 15, 15, 15));
 
@@ -240,25 +232,40 @@ public class OrderHistoryPage extends JPanel {
         JLabel footer = new JLabel("Total: Rs. " + String.format("%.2f", total) + " | Status: " + status);
         footer.setForeground(AppConfig.LIGHT_TEXT);
 
+        // --- BUTTONS LOGIC ---
+        JPanel btns = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+        btns.setBackground(AppConfig.CARD_BACKGROUND);
+
+        // 1. Feedback Button (Only for Delivered orders)
+        if ("Delivered".equalsIgnoreCase(status)) {
+            JButton feedbackBtn = new JButton("Give Feedback");
+            AppConfig.styleFlatButton(feedbackBtn, new Color(46, 204, 113), Color.WHITE); // Green
+            
+            if (checkFeedbackExists(orderId)) {
+                feedbackBtn.setEnabled(false);
+                feedbackBtn.setText("Feedback Sent");
+                AppConfig.styleFlatButton(feedbackBtn, AppConfig.BORDER_GRAY, AppConfig.PLACEHOLDER_TEXT);
+            } else {
+                feedbackBtn.addActionListener(e -> showFeedbackDialog(orderId, restId, restName));
+            }
+            btns.add(feedbackBtn);
+        }
+
+        // 2. Reorder Button
         JButton reorderBtn = new JButton("Reorder All");
         AppConfig.styleFlatButton(reorderBtn, AppConfig.PRIMARY_RED, Color.WHITE);
         reorderBtn.setPreferredSize(new Dimension(130, 32));
         reorderBtn.addActionListener(e -> reorderOrder(orderId));
-
-        JButton cancelBtn = new JButton("Cancel");
-        AppConfig.styleFlatButton(cancelBtn, AppConfig.BORDER_GRAY, AppConfig.LIGHT_TEXT);
-        cancelBtn.setPreferredSize(new Dimension(100, 32));
-        
-        if ("Pending".equalsIgnoreCase(status)) {
-            cancelBtn.addActionListener(e -> cancelOrder(orderId));
-        } else {
-            cancelBtn.setVisible(false);
-        }
-
-        JPanel btns = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
-        btns.setBackground(AppConfig.CARD_BACKGROUND);
-        if (cancelBtn.isVisible()) btns.add(cancelBtn);
         btns.add(reorderBtn);
+
+        // 3. Cancel Button (Only for Pending)
+        if ("Pending".equalsIgnoreCase(status)) {
+            JButton cancelBtn = new JButton("Cancel");
+            AppConfig.styleFlatButton(cancelBtn, AppConfig.BORDER_GRAY, AppConfig.LIGHT_TEXT);
+            cancelBtn.setPreferredSize(new Dimension(100, 32));
+            cancelBtn.addActionListener(e -> cancelOrder(orderId));
+            btns.add(cancelBtn);
+        }
 
         JPanel bottom = new JPanel(new BorderLayout());
         bottom.setBackground(AppConfig.CARD_BACKGROUND);
@@ -271,6 +278,71 @@ public class OrderHistoryPage extends JPanel {
         return card;
     }
 
+    private void showFeedbackDialog(int orderId, int restId, String restName) {
+        JDialog dialog = new JDialog(parentFrame, "Feedback for " + restName, true);
+        dialog.setLayout(new BorderLayout(10, 10));
+        dialog.getContentPane().setBackground(AppConfig.DARK_BACKGROUND);
+        
+        JPanel content = new JPanel(new GridLayout(0, 1, 5, 5));
+        content.setBackground(AppConfig.DARK_BACKGROUND);
+        content.setBorder(new EmptyBorder(20, 20, 20, 20));
+
+        JLabel title = new JLabel("Rate your experience (1-5):");
+        title.setForeground(Color.WHITE);
+        JComboBox<Integer> ratingBox = new JComboBox<>(new Integer[]{5, 4, 3, 2, 1});
+        
+        JLabel reviewLabel = new JLabel("Write a short review:");
+        reviewLabel.setForeground(Color.WHITE);
+        JTextArea commentArea = new JTextArea(4, 20);
+        commentArea.setLineWrap(true);
+        commentArea.setWrapStyleWord(true);
+
+        content.add(title);
+        content.add(ratingBox);
+        content.add(reviewLabel);
+        content.add(new JScrollPane(commentArea));
+
+        JButton submit = new JButton("Submit Feedback");
+        AppConfig.styleFlatButton(submit, AppConfig.PRIMARY_RED, Color.WHITE);
+        submit.addActionListener(e -> {
+            submitFeedback(orderId, restId, (int)ratingBox.getSelectedItem(), commentArea.getText());
+            dialog.dispose();
+            refreshUI();
+        });
+
+        dialog.add(content, BorderLayout.CENTER);
+        dialog.add(submit, BorderLayout.SOUTH);
+        dialog.pack();
+        dialog.setLocationRelativeTo(this);
+        dialog.setVisible(true);
+    }
+
+    private void submitFeedback(int orderId, int restId, int rating, String comment) {
+        String query = "INSERT INTO Feedbacks (order_id, user_id, rest_id, rating, comment) VALUES (?, ?, ?, ?, ?)";
+        try (Connection conn = AppConfig.getConnection();
+             PreparedStatement pst = conn.prepareStatement(query)) {
+            pst.setInt(1, orderId);
+            pst.setInt(2, userId);
+            pst.setInt(3, restId);
+            pst.setInt(4, rating);
+            pst.setString(5, comment);
+            pst.executeUpdate();
+            JOptionPane.showMessageDialog(this, "Feedback submitted successfully!");
+        } catch (SQLException ex) {
+            JOptionPane.showMessageDialog(this, "Error submitting feedback: " + ex.getMessage());
+        }
+    }
+
+    private boolean checkFeedbackExists(int orderId) {
+        String query = "SELECT 1 FROM Feedbacks WHERE order_id = ?";
+        try (Connection conn = AppConfig.getConnection();
+             PreparedStatement pst = conn.prepareStatement(query)) {
+            pst.setInt(1, orderId);
+            ResultSet rs = pst.executeQuery();
+            return rs.next();
+        } catch (SQLException ex) { return false; }
+    }
+
     private void cancelOrder(int orderId) {
         int choice = JOptionPane.showConfirmDialog(this, "Cancel Order #" + orderId + "?", "Confirm", JOptionPane.YES_NO_OPTION);
         if (choice == JOptionPane.YES_OPTION) {
@@ -278,7 +350,7 @@ public class OrderHistoryPage extends JPanel {
                  PreparedStatement pst = conn.prepareStatement("UPDATE Orders SET status = 'Cancelled' WHERE order_id = ?")) {
                 pst.setInt(1, orderId);
                 pst.executeUpdate();
-                refreshUI(); // Immediate refresh
+                refreshUI();
             } catch (SQLException ex) { ex.printStackTrace(); }
         }
     }

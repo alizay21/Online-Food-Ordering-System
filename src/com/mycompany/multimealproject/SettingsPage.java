@@ -179,9 +179,18 @@ public class SettingsPage extends JPanel {
     private void updateProfile() {
         String name = nameField.getText();
         String email = emailField.getText();
-        String phone = phoneField.getText();
         String address = addressField.getText();
 
+        String phone = phoneField.getText().trim();
+
+    // The simplest "Is it a number?" check using Regex
+    if (!phone.isEmpty() && !phone.matches("\\d+")) {
+        JOptionPane.showMessageDialog(this, 
+            "Phone number must contain only digits.", 
+            "Input Error", 
+            JOptionPane.ERROR_MESSAGE);
+        return; // Stop the update
+    }
         String query = "UPDATE Users SET username = ?, email = ?, phone = ?, address = ? WHERE user_id = ?";
         Connection conn = null;
         PreparedStatement pst = null;

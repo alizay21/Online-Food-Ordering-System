@@ -28,7 +28,7 @@ public class LoginPage extends JFrame {
         mainPanel.setBorder(new EmptyBorder(30, 50, 30, 50));
         mainPanel.setBackground(AppConfig.DARK_BACKGROUND);
 
-        titleLabel = new JLabel("MultiMeal " + (selectedRole.equals("admin") ? "Admin" : "Customer") + " Login");
+        titleLabel = new JLabel((selectedRole.equals("admin") ? "Admin" : "Customer") + " Login");
         titleLabel.setFont(new Font("Arial", Font.BOLD, 28));
         titleLabel.setForeground(AppConfig.PRIMARY_RED);
         titleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);

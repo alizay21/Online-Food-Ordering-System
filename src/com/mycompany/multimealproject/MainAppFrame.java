@@ -2,7 +2,7 @@ package com.mycompany.multimealproject;
 
 import javax.swing.*;
 import java.awt.*;
-import javax.swing.border.EmptyBorder;
+//import javax.swing.border.EmptyBorder;
 
 public class MainAppFrame extends JFrame {
 

@@ -37,7 +37,7 @@ public class MenuPage extends JPanel {
         JButton backBtn = new JButton("<- Back to Home");
         backBtn.setFont(AppConfig.FONT_BOLD);
         backBtn.setBackground(AppConfig.BORDER_GRAY);
-        backBtn.setForeground(AppConfig.LIGHT_TEXT);
+        backBtn.setForeground(AppConfig.PRIMARY_RED);
         backBtn.addActionListener(e -> parentFrame.switchView(MainAppFrame.HOME_VIEW));
 
         headerPanel.add(titleLabel, BorderLayout.WEST);
@@ -149,11 +149,11 @@ public class MenuPage extends JPanel {
 
         JLabel nameLabel = new JLabel(itemName);
         nameLabel.setFont(AppConfig.FONT_LARGE);
-        nameLabel.setForeground(AppConfig.LIGHT_TEXT);
+        nameLabel.setForeground(AppConfig.DARK_BACKGROUND);
 
         JLabel descLabel = new JLabel("<html><p style='width:300px;'>" + description + "</p></html>");
         descLabel.setFont(new Font("Arial", Font.PLAIN, 12));
-        descLabel.setForeground(AppConfig.PLACEHOLDER_TEXT);
+        descLabel.setForeground(AppConfig.DARK_BACKGROUND);
 
         JLabel clickHint = new JLabel("Click for Sizes and Pricing ->", JLabel.RIGHT);
         clickHint.setFont(AppConfig.FONT_BOLD);

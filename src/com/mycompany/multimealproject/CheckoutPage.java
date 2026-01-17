@@ -150,7 +150,7 @@ public class CheckoutPage extends JPanel {
         cardRadio = new JRadioButton("Credit / Debit Card");
         styleRadio(cashRadio);
         styleRadio(cardRadio);
-        cashRadio.setSelected(true);
+        cashRadio.setSelected(false);
 
         paymentGroup = new ButtonGroup();
         paymentGroup.add(cashRadio);
@@ -295,7 +295,17 @@ public class CheckoutPage extends JPanel {
 
     private void placeOrder() {
         String address = addressField.getText().trim();
-        String paymentMethod = cashRadio.isSelected() ? "Cash" : "Card";
+        String paymentMethod = null;
+
+           if (cashRadio.isSelected()) {
+               paymentMethod = "Cash";
+           } else if (cardRadio.isSelected()) {
+               paymentMethod = "Card";
+           } else {
+               JOptionPane.showMessageDialog(this, "Please select a payment method.");
+               return;
+           }
+
 
         if (address.isEmpty()) {
             JOptionPane.showMessageDialog(this, "Please enter an address.");

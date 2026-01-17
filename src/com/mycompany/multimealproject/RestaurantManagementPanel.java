@@ -79,8 +79,8 @@ public class RestaurantManagementPanel extends JPanel {
         buttonPanel.setBackground(AppConfig.CARD_BACKGROUND);
         
         addButton = createActionButton("Add Restaurant", AppConfig.PRIMARY_RED);
-        updateButton = createActionButton("Update Selected", AppConfig.BORDER_GRAY);
-        deleteButton = createActionButton("Delete Selected", new Color(200, 50, 50));
+        updateButton = createActionButton("Update Restaurant", AppConfig.BORDER_GRAY);
+        deleteButton = createActionButton("Delete Restaurant", new Color(200, 50, 50));
         
         updateButton.setEnabled(false);
         deleteButton.setEnabled(false);
